@@ -3,7 +3,7 @@
 This web-based tool supports decision-making for multiple Generative AI (GenAI) projects by enabling users to input data for up to three projects simultaneously and instantly receive comparative prioritization analysis. The interface features intuitive icons and interactive elements for real-time user engagement. 
 
 Live demo:
-👉[GenAI Multi-Project Analysis](https://oanhnguyen-mba.github.io/py-html-js-analysis_multiple_projects/)
+👉[GenAI Investment Decision Support](https://oanhnguyen-mba.github.io/py-html-js-analysis_multiple_projects/)
 
 ## Abstract
 With the rapid emergence of Generative AI technologies, organizations face challenges in allocating limited resources across competing projects. This tool facilitates evaluation and prioritization of multiple GenAI investment projects by calculating key financial metrics—ROI, Payback Period, NPV, IRR—and mapping projects on a value-feasibility matrix. It helps decision-makers identify which projects to start immediately, consider later, or deprioritize.
