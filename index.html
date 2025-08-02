@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GenAI Investment Decision Support</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background:#f7f7f7; margin: 20px; color:#333; }
+  h1 { text-align:center; color:#444; }
+  .input-section { background:#e0e0e0; padding:20px; border-radius:8px; margin-bottom:20px; }
+  label { display:block; margin-top:12px; font-weight:600; }
+  input[type=number], input[type=text] { 
+    width: 100%; padding: 8px; border-radius:4px; border:1px solid #bbb; background:#f0f0f0; 
+    font-family: monospace;
+  }
+  input[type=text] { font-size: 14px; }
+  .project { margin-bottom: 30px; padding-bottom:10px; border-bottom: 1px solid #ccc; }
+  button { background:#a8dadc; border:none; padding:10px 20px; margin:15px 5px 30px 0; border-radius:5px; cursor:pointer; font-weight:600; color:#055160; }
+  button:hover { background:#78c2c8; }
+  #results { background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); max-width: 700px; margin: auto;}
+  .result-block { margin-bottom:20px; }
+  canvas { background:#f9f9f9; border-radius: 8px; }
+  #matrix-container { position:relative; width:500px; height:500px; margin:20px auto; }
+  .quadrant-label {
+    position: absolute;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    max-width: 130px;
+    line-height: 1.1;
+    background: rgba(255,255,255,0.8);
+    padding: 5px 8px;
+    border-radius: 6px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  }
+  .q1 { top: 40px; right: 0; transform: translateX(40px); text-align: right; }
+  .q2 { top: 40px; left: 0; transform: translateX(40px); }
+  .q3 { bottom: 40px; left: 0; transform: translateX(40px); }
+  .q4 { bottom: 40px; right: 0; transform: translateX(40px); text-align: right; }
+  #matrix-lines {
+    position: absolute;
+    top: 0; left: 0; width: 500px; height: 500px;
+    pointer-events: none;
+  }
+  #matrix-lines svg { width: 100%; height: 100%; }
+  #matrix-lines line {
+    stroke: #bbb;
+    stroke-width: 2;
+    stroke-dasharray: 8,6;
+  }
+  #business-summary {
+    max-width: 700px;
+    background: #e8f6f9;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 20px auto 40px auto;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  }
+  #business-summary h3 { margin-top: 0; color: #055160; }
+  #business-summary ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<h1>GenAI Investment Decision Support</h1>
+
+<div class="input-section" id="input-section">
+  <h2>Input Project Data (3 projects)</h2>
+  <small>Fill in project name, investment cost, annual savings, cash flows (6 years), business value and feasibility scores (1-10).</small>
+  <form id="dataForm">
+
+  <div class="project">
+    <h3>Project 1</h3>
+    <label>Project Name:</label>
+    <input type="text" id="name_1" value="Project 1" />
+    <label>Investment Cost (€):</label>
+    <input type="number" id="cost_1" value="40000" min="0" step="1000" />
+    <label>Annual Savings (€):</label>
+    <input type="number" id="savings_1" value="50000" min="0" step="1000" />
+    <label>Cash Flows for 6 years (comma separated):</label>
+    <input type="text" id="cashflows_1" value="-40000,12000,13000,15000,17000,19000" style="font-family: monospace; width:100%;" />
+    <label>Business Value Score (1-10):</label>
+    <input type="number" id="value_1" value="9" min="1" max="10" step="1" />
+    <label>Feasibility Score (1-10):</label>
+    <input type="number" id="feasibility_1" value="8" min="1" max="10" step="1" />
+  </div>
+
+  <div class="project">
+    <h3>Project 2</h3>
+    <label>Project Name:</label>
+    <input type="text" id="name_2" value="Project 2" />
+    <label>Investment Cost (€):</label>
+    <input type="number" id="cost_2" value="60000" min="0" step="1000" />
+    <label>Annual Savings (€):</label>
+    <input type="number" id="savings_2" value="35000" min="0" step="1000" />
+    <label>Cash Flows for 6 years (comma separated):</label>
+    <input type="text" id="cashflows_2" value="-60000,5000,7000,9000,11000,13000" style="font-family: monospace; width:100%;" />
+    <label>Business Value Score (1-10):</label>
+    <input type="number" id="value_2" value="8" min="1" max="10" step="1" />
+    <label>Feasibility Score (1-10):</label>
+    <input type="number" id="feasibility_2" value="5" min="1" max="10" step="1" />
+  </div>
+
+  <div class="project">
+    <h3>Project 3</h3>
+    <label>Project Name:</label>
+    <input type="text" id="name_3" value="Project 3" />
+    <label>Investment Cost (€):</label>
+    <input type="number" id="cost_3" value="50000" min="0" step="1000" />
+    <label>Annual Savings (€):</label>
+    <input type="number" id="savings_3" value="25000" min="0" step="1000" />
+    <label>Cash Flows for 6 years (comma separated):</label>
+    <input type="text" id="cashflows_3" value="-50000,3000,2000,1000,0,-500" style="font-family: monospace; width:100%;" />
+    <label>Business Value Score (1-10):</label>
+    <input type="number" id="value_3" value="4" min="1" max="10" step="1" />
+    <label>Feasibility Score (1-10):</label>
+    <input type="number" id="feasibility_3" value="4" min="1" max="10" step="1" />
+  </div>
+
+    <button type="button" onclick="runAnalysis()">Analyze Projects</button>
+    <button type="button" onclick="downloadPDF()">Download PDF Report</button>
+  </form>
+</div>
+
+<div id="results">
+  <h2>Analysis Results</h2>
+  <div id="roiResults" class="result-block"></div>
+  <div id="pbpResults" class="result-block"></div>
+  <div id="npvIrrResults" class="result-block"></div>
+  <div id="recommendations" class="result-block"></div>
+
+  <div id="matrix-container">
+    <canvas id="matrixChart" width="500" height="500"></canvas>
+    <div id="matrix-lines">
+      <svg>
+        <line x1="250" y1="0" x2="250" y2="500" />
+        <line x1="0" y1="250" x2="500" y2="250" />
+      </svg>
+    </div>
+    <div class="quadrant-label q1">Start Now<br>(High Value,<br>High Feasibility)</div>
+    <div class="quadrant-label q2">Easy Wins<br>(Low Value,<br>High Feasibility)</div>
+    <div class="quadrant-label q3">Low Priority<br>(Low Value,<br>Low Feasibility)</div>
+    <div class="quadrant-label q4">Consider Later<br>(High Value,<br>Low Feasibility)</div>
+  </div>
+</div>
+
+<div id="business-summary">
+  <h3>Business Case Summary</h3>
+  <ul>
+    <li>Prioritize projects with high value and high feasibility for immediate investment.</li>
+    <li>Consider projects with high value but lower feasibility for medium-term planning.</li>
+    <li>Projects with low value and/or low feasibility should be deprioritized.</li>
+    <li>Investment decisions should consider ROI > 10%, Payback Period <= 5 years, IRR > 10%.</li>
+    <li>Continuous monitoring and re-evaluation of projects is recommended.</li>
+  </ul>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<script>
+  let matrixChart = null;
+
+  function parseCashflows(str) {
+    return str.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+  }
+
+  function calcMetrics(cost, savings, cashflows) {
+    const discountRate = 0.10;
+    let npv = cashflows.reduce((acc,val,i) => acc + val / Math.pow(1 + discountRate, i), 0);
+
+    function irrCalc(cfs, guess=0.1) {
+      let rate = guess, maxIter = 1000, tol=1e-6;
+      for(let i=0;i<maxIter;i++){
+        let npvVal = 0, dNpv = 0;
+        for(let t=0;t<cfs.length;t++){
+          npvVal += cfs[t]/Math.pow(1+rate,t);
+          dNpv -= t*cfs[t]/Math.pow(1+rate,t+1);
+        }
+        let newRate = rate - npvVal/dNpv;
+        if(Math.abs(newRate - rate) < tol) return newRate;
+        rate = newRate;
+      }
+      return rate;
+    }
+    let irr = irrCalc(cashflows);
+
+    let cumulative = 0, payback = null;
+    for(let i=0; i<cashflows.length; i++) {
+      cumulative += cashflows[i];
+      if(cumulative >= 0) {
+        let prevCum = cumulative - cashflows[i];
+        let fraction = (0 - prevCum) / cashflows[i];
+        payback = i - 1 + fraction;
+        break;
+      }
+    }
+    if(payback === null) payback = cashflows.length;
+
+    let netGain = savings - cost;
+    let roiPercent = (netGain / cost) * 100;
+
+    return { npv, irr, pbp: payback.toFixed(2), roiPercent };
+  }
+
+  function runAnalysis(){
+    let projects = [];
+    for(let i=1; i<=3; i++){
+      let name = document.getElementById('name_'+i).value || 'Project ' + i;
+      let cost = parseFloat(document.getElementById('cost_'+i).value) || 0;
+      let savings = parseFloat(document.getElementById('savings_'+i).value) || 0;
+      let cashflows = parseCashflows(document.getElementById('cashflows_'+i).value);
+      let valueScore = parseFloat(document.getElementById('value_'+i).value) || 0;
+      let feasibilityScore = parseFloat(document.getElementById('feasibility_'+i).value) || 0;
+
+      let metrics = calcMetrics(cost, savings, cashflows);
+      projects.push({
+        index: i,
+        name,
+        cost,
+        savings,
+        cashflows,
+        valueScore,
+        feasibilityScore,
+        npv: metrics.npv,
+        irr: metrics.irr,
+        pbp: metrics.pbp,
+        roiPercent: metrics.roiPercent
+      });
+    }
+
+    projects.sort((a,b) => a.index - b.index);
+
+    let roiHtml = '<h3>ROI Results</h3><ul>';
+    projects.forEach(p => {
+      roiHtml += `<li><strong>${p.name}:</strong> ROI = ${p.roiPercent.toFixed(2)}%</li>`;
+    });
+    roiHtml += '</ul>';
+    document.getElementById('roiResults').innerHTML = roiHtml;
+
+    let pbpHtml = '<h3>Payback Period (years)</h3><ul>';
+    projects.forEach(p => {
+      pbpHtml += `<li><strong>${p.name}:</strong> Payback Period = ${p.pbp} years</li>`;
+    });
+    pbpHtml += '</ul>';
+    document.getElementById('pbpResults').innerHTML = pbpHtml;
+
+    let npvHtml = '<h3>NPV & IRR</h3><ul>';
+    projects.forEach(p => {
+      npvHtml += `<li><strong>${p.name}:</strong> NPV = €${p.npv.toFixed(2)}, IRR = ${(p.irr*100).toFixed(2)}%</li>`;
+    });
+    npvHtml += '</ul>';
+    document.getElementById('npvIrrResults').innerHTML = npvHtml;
+
+    let recHtml = '<h3>Investment Recommendations</h3><ul>';
+    projects.forEach(p => {
+      recHtml += `<li><strong>${p.name}:</strong> 
+        ${p.roiPercent > 10 && p.pbp <= 5 && p.irr > 0.1 ? 
+          '<span style="color:green;">Invest now.</span>' : 
+          (p.roiPercent > 10 ? '<span style="color:orange;">Consider later (3-5 years).</span>' : 
+           '<span style="color:red;">Not recommended for investment.</span>')}
+      </li>`;
+    });
+    recHtml += '</ul>';
+    document.getElementById('recommendations').innerHTML = recHtml;
+
+    drawMatrix(projects);
+  }
+
+  function drawMatrix(projects) {
+    const ctx = document.getElementById('matrixChart').getContext('2d');
+    const pastelColors = ['#aec6cf', '#ffd1dc', '#fdfd96'];
+
+    if(matrixChart) matrixChart.destroy();
+
+    matrixChart = new Chart(ctx, {
+      type: 'scatter',
+      data: {
+        datasets: projects.map((p,i) => ({
+          label: p.name,
+          data: [{x: p.feasibilityScore, y: p.valueScore}],
+          backgroundColor: pastelColors[i],
+          pointRadius: 12,
+        }))
+      },
+      options: {
+        scales: {
+          x: {min:0, max:10, title:{display:true,text:'Feasibility Score'}},
+          y: {min:0, max:10, title:{display:true,text:'Value Score'}}
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let p = projects[context.datasetIndex];
+                return `${p.name}: Value=${p.valueScore}, Feasibility=${p.feasibilityScore}`;
+              }
+            }
+          }
+        },
+        responsive:false
+      }
+    });
+  }
+
+  async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "pt", "a4");
+    const margin = 30;
+    let y = margin;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    function checkPageSpace(linesHeight) {
+      if (y + linesHeight > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+      }
+    }
+
+    pdf.setFontSize(18);
+    pdf.text("GenAI Investment Decision Support", pdf.internal.pageSize.getWidth()/2, y, {align:"center"});
+    y += 30;
+
+    const addSection = (title, content) => {
+      pdf.setFontSize(14);
+      checkPageSpace(30);
+      pdf.text(title, margin, y);
+      y += 18;
+      pdf.setFontSize(11);
+      const lines = pdf.splitTextToSize(content, 520);
+      checkPageSpace(lines.length * 14 + 20);
+      pdf.text(lines, margin, y);
+      y += lines.length * 14 + 25;
+    };
+
+    addSection("ROI Results", document.getElementById("roiResults").innerText.replace("ROI Results",""));
+    addSection("Payback Period", document.getElementById("pbpResults").innerText.replace("Payback Period (years)",""));
+    addSection("NPV & IRR", document.getElementById("npvIrrResults").innerText.replace("NPV & IRR",""));
+    addSection("Investment Recommendations", document.getElementById("recommendations").innerText.replace("Investment Recommendations",""));
+
+    const matrix = document.getElementById("matrix-container");
+    await html2canvas(matrix, {scale:2}).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = pdf.internal.pageSize.getWidth() - margin*2;
+      const maxHeight = 300;
+      let imgWidth = pageWidth;
+      let imgHeight = canvas.height * (imgWidth / canvas.width);
+      if (imgHeight > maxHeight) {
+        imgHeight = maxHeight;
+        imgWidth = canvas.width * (imgHeight / canvas.height);
+      }
+      checkPageSpace(imgHeight + 20);
+      pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
+      y += imgHeight + 20;
+    });
+
+    addSection("Business Case Summary", document.getElementById("business-summary").innerText.replace("Business Case Summary",""));
+
+    pdf.save("GenAI_Investment_Report.pdf");
+  }
+
+  window.onload = runAnalysis;
+</script>
+
+</body>
+</html>
